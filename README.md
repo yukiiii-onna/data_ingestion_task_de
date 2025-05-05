@@ -1,13 +1,18 @@
 ```markdown
 # Faker API Data Flow
 
-A Dockerized pipeline that ingests synthetic person data from a public API, anonymizes PII, stores it in DuckDB, and generates analytical reports using SQL and Streamlit.
+A Dockerized pipeline that ingests synthetic person data from a public API,
+anonymizes PII,
+stores it in DuckDB, and generates analytical reports using SQL and Streamlit.
 
 ---
 
 ## Project Overview
 
-This project simulates a real-world data ingestion pipeline that processes external third-party data securely and efficiently. The pipeline fetches synthetic user data from the [Faker API](https://fakerapi.it/), anonymizes sensitive fields (PII), stores the transformed data in a local DuckDB database, and generates SQL-based reports for analytical insights.
+This project simulates a real-world data ingestion pipeline that processes external
+third-party data securely and efficiently.
+The pipeline fetches synthetic user data from the [Faker API](https://fakerapi.it/),
+anonymizes sensitive fields (PII), stores the transformed data in a local DuckDB database, and generates SQL-based reports for analytical insights.
 
 It demonstrates:
 - Scalable data ingestion from external APIs
@@ -15,10 +20,9 @@ It demonstrates:
 - SQL reporting on anonymized datasets
 - Containerized orchestration with Docker and Apache Airflow
 
-This solution was developed as part of a **Senior Data Engineer take-home challenge** and focuses on production-simulated design and code quality.
+This solution was developed as part of a ** Data Engineer take-home challenge **
+and focuses on production-simulated design and code quality.
 
-➡️ For a discussion on **production-ready improvements**, see [Production Readiness](#-production-readiness--improvements).  
-➡️ To run this project locally, see [How to Run the Project](#-how-to-run-the-project).
 
 ---
 
@@ -34,7 +38,7 @@ This solution was developed as part of a **Senior Data Engineer take-home challe
 - Loads cleaned data into DuckDB for querying
   - Database stored in a mounted `/db/` volume for persistence
 - Generates SQL-based analytical reports:
-  - % of German users using Gmail
+  - Percentage of German users using Gmail
   - Top 3 countries using Gmail
   - Count of Gmail users over age 60
 - Visualizes results with a Streamlit dashboard
@@ -42,79 +46,23 @@ This solution was developed as part of a **Senior Data Engineer take-home challe
 - Fully containerized with Docker for consistent local development
 
 ---
-
-## Folder Structure
-
-```
-
-faker-api-dataflow/
-├── airflow/
-│   ├── dags/
-│   │   └── ETLUserMetrics/
-│   │       ├── config/
-│   │       │   ├── anonymization_config.py
-│   │       │   └── pipeline_config.py
-│   │       ├── pr_utils/
-│   │       │   ├── anonymize.py
-│   │       │   ├── fetch.py
-│   │       │   ├── storage.py
-│   │       │   ├── transformation.py
-│   │       │   ├── utils.py
-│   │       │   └── operators/
-│   │       │       └── duckdb_operator.py
-│   │       ├── sql/
-│   │       │   └── internal/
-|   |       |       └──create_tables.sql
-|   |       |       └──unique_email_provider_count.sql
-|   |       |       └──init_internals_tables.sql                   
-│   │       │   └── reporting/
-|   |       |       └──germany_gmail_percentage.sql
-|   |       |       └──over60_gmail_users.sql
-|   |       |       └──top_gmail_countries.sql
-│   │       └── etl_user_metrics_dag.py
-│   ├── logs/
-│   ├── plugins/
-│   └── sql/
-├── data_lake/
-│   └── raw/                               # Partitioned Parquet (YYYY/MM/DD)
-├── db/                                    # DuckDB database 
-├── gx/                                    # Placeholder for Great Expectations
-├── scripts/
-├── streamlit_app/
-├── tests/
-│   └── dags/ETLUserMetrics/
-│       ├── test_anonymize.py
-│       ├── test_fetch.py
-│       └── test_sql_queries.py
-├── .env
-├── .env.example
-├── airflow.db
-├── Dockerfile
-├── docker-compose.yml
-├── Makefile
-├── requirements.txt
-└── README.md
-
 ````
 
----
 
-## ▶️ How to Run the Project
+## How to Run the Project
 
 ### 1. Clone the Repository
 
 ```bash
-git clone https://github.com/your-username/faker-api-dataflow.git
-cd faker-api-dataflow
-````
+git clone https://github.com/your-username/data_ingestion_task_de.git
+cd data_ingestion_task_de
+```
 
 ### 2. Set Up Environment Variables
 
 ```bash
 cp .env.example .env
 ```
-
-*(This is also handled automatically when you run `make up-all`.)*
 
 ### 3. Start the Project
 
@@ -201,29 +149,33 @@ All reports run via SQL and are visualized in Streamlit.
 **1. Germany Gmail Users (%):**
 
 ```sql
-SELECT 
-  ROUND(100.0 * COUNT(*) / (SELECT COUNT(*) FROM persons_anonymized), 2) AS germany_gmail_percentage
-FROM persons_anonymized
-WHERE country = 'Germany' AND email = 'gmail.com';
+SELECT
+  ROUND(
+    100.0 * SUM(CASE WHEN country = 'Germany' AND email like '%gmail%' THEN 1 ELSE 0 END) 
+    / COUNT(*), 2
+  ) AS germany_gmail_percentage
+FROM persons_anonymized;
 ```
 
 **2. Top 3 Gmail Countries:**
 
 ```sql
-SELECT country, COUNT(*) AS gmail_users
+SELECT
+  country,
+  COUNT(*) AS gmail_user_count,
+  DENSE_RANK() OVER (ORDER BY COUNT(*) DESC) AS rank
 FROM persons_anonymized
-WHERE email = 'gmail.com'
+WHERE email LIKE '%gmail%'
 GROUP BY country
-ORDER BY gmail_users DESC
-LIMIT 3;
+QUALIFY rank <= 3;
 ```
 
 **3. Gmail Users Over 60:**
 
 ```sql
-SELECT COUNT(*) AS gmail_over_60
+SELECT COUNT(*) AS over_60_gmail_users
 FROM persons_anonymized
-WHERE email = 'gmail.com' AND age_group IN ('[60-70]', '[70-80]', '[80-90]', '[90+]');
+WHERE email like '%gmail%' AND age_group IN ('[60-70]', '[70-80]', '[80-90]', '[90-100]');
 ```
 
 ---
@@ -236,20 +188,19 @@ This project simulates a real-world data pipeline. Below are improvements and pr
 
 * Schema drift detection via stored schema signatures (future work)
 * Great Expectations integration planned for:
-
   * Null checks
-  * Row count thresholds
+  * Row count 
   * Domain/value validation
 * Formal data contracts for ingestion
 
 ### Pipeline Design
 
-* Handle late-arriving data using watermarking or partition repair
+* Handle late-arriving
 * Retain raw data for reprocessing/backfilling
 * Support re-runs and backfills gracefully
 * Avoid table drops; use migration/versioning
 
-### 🔧 Architecture & Modularity
+### Architecture & Modularity
 
 * Automate everything via Makefile, Docker, Airflow, and future CI/CD
 
@@ -263,7 +214,6 @@ This project simulates a real-world data pipeline. Below are improvements and pr
 
 * Cost-aware practices for cloud DBs
 * Use partition pruning, materialized views
-* Optimize latency for near-real-time pipelines
 
 ### Testing & Documentation
 
