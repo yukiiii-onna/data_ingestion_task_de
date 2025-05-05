@@ -29,18 +29,23 @@ and focuses on production-simulated design and code quality.
 ## Features
 
 - Ingests 30,000 synthetic user profiles from the Faker API
+
 - Applies **PII masking** before storing raw data into partitioned Parquet files
   - Stored in `data_lake/raw/YYYY/MM/DD/`
   - Masks name, phone, address, coordinates, ZIP code, and email local part
+
 - Applies **data generalization and cleaning** before loading into DuckDB
   - Converts birthdate to 10-year age groups (e.g., [30–40])
   - Extracts email domain and retains anonymized location details
+
 - Loads cleaned data into DuckDB for querying
   - Database stored in a mounted `/db/` volume for persistence
+
 - Generates SQL-based analytical reports:
   - Percentage of German users using Gmail
   - Top 3 countries using Gmail
   - Count of Gmail users over age 60
+
 - Visualizes results with a Streamlit dashboard
 - Fully orchestrated with Apache Airflow
 - Fully containerized with Docker for consistent local development
