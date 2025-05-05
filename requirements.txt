@@ -1,0 +1,16 @@
+# Core packages
+apache-airflow==2.8.2
+
+# DuckDB (lightweight OLAP database)
+duckdb==0.10.0
+
+# Data transformation & file support
+pandas==2.1.4
+pyarrow==14.0.2
+
+# Dashboard / reporting tool
+streamlit==1.28.2
+
+great_expectations==0.18.14
+
+pytest
